@@ -29,7 +29,7 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
   background-image:repeating-linear-gradient(115deg,transparent 0 11px,rgba(160,130,80,.07) 11px 12px),repeating-linear-gradient(65deg,transparent 0 11px,rgba(160,130,80,.07) 11px 12px)}
 header.top{position:relative;padding:calc(var(--st) + 10px) 16px 10px;background:var(--navy);color:var(--gold2);display:flex;align-items:center;gap:10px;z-index:2}
 header.top h1{margin:0;font-family:var(--serif);font-size:17px;letter-spacing:.12em;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-header.top .back{color:var(--gold2);font-size:15px;padding:4px 8px 4px 0}
+header.top .back{color:var(--gold2);font-size:15px;padding:10px 14px 10px 0;margin:-6px 0;min-height:44px;flex:none}
 main{position:relative;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 24px}
 nav.tabs{position:relative;display:flex;background:var(--navy);padding:6px 4px calc(var(--sb) + 6px);z-index:2}
 nav.tabs button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;color:#9aa6c2;font-size:10.5px;padding:4px 0}
@@ -279,6 +279,12 @@ function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor
 function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function daysLeft(){const t=new Date(today()+"T00:00:00"), e=new Date((S.examDate||EXAM_DEFAULT)+"T00:00:00");return Math.round((e-t)/86400000);}
 function toast(m){const t=h(`<div class="toast">${esc(m)}</div>`);document.body.appendChild(t);setTimeout(()=>t.remove(),1800);}
+function ask(msg,yes,yesLabel="はい"){
+  const ov=h(`<div class="overlay"><div class="box"><div style="font-weight:700;font-size:16px;line-height:1.6">${esc(msg)}</div><div class="row" style="margin-top:14px"><button class="btn ghost">いいえ</button><button class="btn">${esc(yesLabel)}</button></div></div></div>`);
+  const [no,ok]=ov.querySelectorAll("button");
+  no.onclick=()=>ov.remove(); ok.onclick=()=>{ov.remove();yes();};
+  document.body.appendChild(ov);
+}
 function card(id){return S.cards[id]||{rank:0};}
 function siteById(id){return SITES.find(s=>s.id===id);}
 
@@ -528,7 +534,7 @@ function runQuiz({title, items, back, onDone, timeLimit, mock}){
   const show=()=>{
     if(i>=items.length) return finish();
     const q=items[i];
-    const m=screen(title,()=>{ if(confirm("クイズを中断してもどる？")){finished=true;clearInterval(timerId);back();} },false);
+    const m=screen(title,()=>ask("クイズを中断してもどる？",()=>{finished=true;clearInterval(timerId);back();},"もどる"),false);
     m.appendChild(h(`<div class="qtop"><span class="qnum">${i+1} / ${items.length}</span><div class="bar"><i style="width:${i/items.length*100}%"></i></div>${endAt?`<span class="timer" id="qtimer"></span>`:""}</div>`));
     const tagTxt = q.mixed?"基礎知識のおさらい":(q.type==="map"?"地図問題":(CAT_NAME[q.cat]||""));
     m.appendChild(h(`<span class="qtag ${q.cat==="basic"?"basic":""}">${tagTxt}</span>`));
@@ -727,7 +733,7 @@ function Passport(){
   const file=set.querySelector("input[type=file]");
   set.querySelector("#im").onclick=()=>file.click();
   file.onchange=()=>{const f=file.files[0]; if(!f)return; const rd=new FileReader(); rd.onload=()=>{try{const d=JSON.parse(rd.result); if(!d||d.v!==1) throw 0; S=Object.assign(blank(),d); save(); toast("読み込みました"); Passport();}catch(e){toast("読み込めないファイルです");}}; rd.readAsText(f);};
-  set.querySelector("#rs").onclick=()=>{ if(confirm("すべての記録を消して最初からやり直しますか？")){S=blank();save();TAB="home";go();} };
+  set.querySelector("#rs").onclick=()=>ask("すべての記録を消して最初からやり直しますか？",()=>{S=blank();save();TAB="home";go();},"消す");
   m.appendChild(set);
 }
 

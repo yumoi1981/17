@@ -147,6 +147,12 @@ table.res td:last-child{text-align:right;font-weight:700}
 .sic{width:38px;height:38px;border-radius:50%;background:var(--paper2);display:grid;place-items:center;flex:none}
 .pill.danger{background:var(--red);color:#fff}
 .stamp{width:88px;height:88px}
+table.crit{width:100%;border-collapse:collapse;font-size:14px}
+table.crit td{padding:7px 4px;border-bottom:1px dashed var(--line);vertical-align:top}
+table.crit td.no{font-family:var(--serif);font-weight:700;color:var(--navy);white-space:nowrap;width:3.2em}
+table.crit td.grp{background:var(--navy);color:var(--gold2);font-weight:700;font-size:12px;border-radius:6px}
+table.crit td.grp.nat{background:var(--green);color:#fff}
+table.crit td:last-child{width:34%}
 </style>
 </head>
 <body>
@@ -565,6 +571,7 @@ function HQ(){
     if(!S.passport && r.correct/r.total>=0.8){S.passport=today();save();Celebrate("passport");}
   }});
   m.appendChild(b2);
+  const b3=h(`<button class="btn ghost">登録基準トレーニング（語呂で覚える）</button>`); b3.onclick=CritTraining; m.appendChild(b3);
 }
 function LearnCards(i){
   const m=screen(`学習カード ${i+1} / ${BASIC_CARDS.length}`,HQ);
@@ -575,6 +582,58 @@ function LearnCards(i){
   const p=h(`<button class="btn ghost" ${i===0?"disabled":""}>‹ 前へ</button>`); p.onclick=()=>LearnCards(i-1);
   const n=h(`<button class="btn">${i===BASIC_CARDS.length-1?"本部にもどる":"次へ ›"}</button>`); n.onclick=()=>i===BASIC_CARDS.length-1?HQ():LearnCards(i+1);
   row.append(p,n); m.appendChild(row);
+}
+
+
+// ---------- 登録基準トレーニング ----------
+const CRIT = [
+  {n:"(i)",  kw:"傑作", desc:"人類の創造的才能を示す傑作", goro:"1番＝いちばんの傑作", ex:"姫路城"},
+  {n:"(ii)", kw:"交流", desc:"建築や技術などで、価値観の交流を示すもの", goro:"2つの文化が交わる", ex:"法隆寺・富岡製糸場"},
+  {n:"(iii)",kw:"証拠", desc:"現存する、または消滅した文化的伝統や文明の証拠", goro:"3（サン）プル＝文明の証拠品", ex:"潜伏キリシタン（(iii)のみ）"},
+  {n:"(iv)", kw:"建物・景観の見本", desc:"歴史の重要な段階を示す建築様式・技術や景観の見本", goro:"4（し）＝城（しろ）や建物", ex:"姫路城・白川郷"},
+  {n:"(v)",  kw:"集落・土地利用", desc:"伝統的な集落や、土地・海上利用の見本", goro:"5（ご）＝ご近所の集落", ex:"白川郷・石見銀山"},
+  {n:"(vi)", kw:"出来事・信仰・芸術", desc:"出来事や伝統、思想・信仰・芸術と関連するもの", goro:"6（ろく）＝記録に残る出来事や祈り", ex:"原爆ドーム（(vi)のみ）・富士山"},
+  {n:"(vii)",kw:"自然美", desc:"ひときわすぐれた自然美や、類まれな自然現象", goro:"7（なな）＝ながめが美しい", ex:"屋久島"},
+  {n:"(viii)",kw:"地球の歴史", desc:"地層や地形など、地球の歴史の主要な段階を示すもの", goro:"8（はち）→ち（地）＝地層・地形", ex:"ドーセット海岸（イギリス）"},
+  {n:"(ix)", kw:"生態系", desc:"生態系や動植物の進化・発展の過程を示すもの", goro:"9（く）＝食う食われる（食物連鎖）", ex:"白神山地・小笠原・知床"},
+  {n:"(x)",  kw:"生物多様性", desc:"絶滅危惧種の生息域など、生物多様性の保全に重要な場所", goro:"10（とお）＝とうとい命を守る", ex:"奄美・沖縄・知床"}
+];
+const CRIT_Q = [], CRIT_JP_Q = [];
+(function(){
+  const rnd=seeded("crit");
+  CRIT.forEach((c,i)=>{
+    const grp=i<6?CRIT.slice(0,6):CRIT.slice(6), others=grp.filter(x=>x!==c), rest=CRIT.filter(x=>x!==c&&!grp.includes(x));
+    const pick=pickN(others,3,rnd); if(pick.length<3) pick.push(...pickN(rest,3-pick.length,rnd));
+    const e=`${c.n}＝${c.kw}。語呂は「${c.goro}」。例：${c.ex}`;
+    CRIT_Q.push({id:"k_"+i+"_d",cat:"basic",q:`登録基準${c.n}の内容は？`,c:[c.desc].concat(pick.map(x=>x.desc)),e});
+    CRIT_Q.push({id:"k_"+i+"_n",cat:"basic",q:`「${c.desc}」はどの登録基準？`,c:[c.n].concat(pick.map(x=>x.n)),e});
+  });
+  CRIT_Q.push({id:"k_nat",cat:"basic",q:"自然遺産の登録基準はどれ？",c:["(vii)〜(x)","(i)〜(vi)","(v)〜(x)","(i)〜(iv)"],e:"(i)〜(vi)が文化遺産、(vii)〜(x)が自然遺産。"});
+  CRIT_Q.push({id:"k_vi",cat:"basic",q:"「他の基準とあわせて用いられることが望ましい」とされる基準は？",c:["(vi)","(i)","(iv)","(x)"],e:"(vi)。原爆ドームは(vi)だけで登録された珍しい例。"});
+  CRIT_Q.push({id:"k_ix_x",cat:"basic",q:"「生き物がすむ場所（絶滅危惧種の生息域）」が評価されるのは？",c:["(x)","(ix)","(vii)","(viii)"],e:"(ix)＝生態系のしくみ・進化の過程、(x)＝めずらしい生き物がすむ場所（生物多様性）。"});
+  CRIT_Q.push({id:"k_vii_viii",cat:"basic",q:"「地層や地形の成り立ち」が評価されるのは？",c:["(viii)","(vii)","(ix)","(iii)"],e:"(vii)＝見た目の美しさ、(viii)＝地球の歴史（地層・地形）。"});
+  CRIT_Q.push({id:"k_ii_iii",cat:"basic",q:"「文化の行き来」が評価されるのは？",c:["(ii)","(iii)","(v)","(vi)"],e:"(ii)＝交流（行き来）、(iii)＝証拠（残ったもの）。"});
+  const words=Object.fromEntries(CRIT.map(c=>[c.n,c.kw]));
+  SITES.filter(s=>s.region==="jp"&&s.crit).forEach(s=>{
+    const r2=seeded("crit"+s.id), others=[...new Set(SITES.filter(x=>x.region==="jp"&&x.crit&&x.crit!==s.crit).map(x=>x.crit))];
+    const parts=s.crit.match(/\([ivx]+\)/g)||[];
+    CRIT_JP_Q.push({id:"k_jp_"+s.id,cat:"basic",site:s.id,q:`『${s.name}』の登録基準は？`,c:[s.crit].concat(pickN(others,3,r2)),e:`${s.crit}：`+parts.map(p=>`${p}${words[p]}`).join("＋")});
+  });
+  CRIT_Q.concat(CRIT_JP_Q).forEach(q=>QMAP[q.id]=q);
+})();
+function CritTraining(){
+  const m=screen("登録基準トレーニング",HQ);
+  m.appendChild(h(`<div class="card"><b>覚え方のコツ</b><div class="small" style="margin-top:4px;line-height:1.7">まず<b>(i)〜(vi)は文化遺産</b>、<b>(vii)〜(x)は自然遺産</b>と2つに分けよう。そのあと、1つの番号に1つのキーワードを語呂で結びつけて覚えよう。</div></div>`));
+  const tb=h(`<div class="card" style="padding:8px 10px"><table class="crit"></table></div>`), t=tb.querySelector("table");
+  CRIT.forEach((c,i)=>{ if(i===0) t.appendChild(h(`<tr><td colspan="3" class="grp">文化遺産</td></tr>`)); if(i===6) t.appendChild(h(`<tr><td colspan="3" class="grp nat">自然遺産</td></tr>`));
+    t.appendChild(h(`<tr><td class="no">${c.n}</td><td><b>${esc(c.kw)}</b><div class="small">${esc(c.goro)}</div></td><td class="small">${esc(c.ex)}</td></tr>`)); });
+  m.appendChild(tb);
+  m.appendChild(h(`<div class="card"><b>まちがえやすいペア</b><div class="small" style="margin-top:4px;line-height:1.8">・(ii)交流（行き来）と(iii)証拠（残ったもの）<br>・(vii)見た目の美しさと(viii)地層・地形の成り立ち<br>・(ix)生き物のつながり・進化のしくみと(x)めずらしい生き物がすむ場所<br>・(vi)は他の基準とあわせて使うのが望ましい（原爆ドームは(vi)のみ）</div></div>`));
+  const b1=h(`<button class="btn gold">基準の中身を練習（10問）</button>`);
+  b1.onclick=()=>runQuiz({title:"登録基準トレーニング",items:shuffle(CRIT_Q).slice(0,10),back:CritTraining});
+  const b2=h(`<button class="btn">日本の遺産の登録基準（10問）</button>`);
+  b2.onclick=()=>runQuiz({title:"日本の遺産の登録基準",items:shuffle(CRIT_JP_Q).slice(0,10),back:CritTraining});
+  m.append(b1,b2);
 }
 
 // ===== 地域の地図 =====
